@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Cikkfeldolgozó</title>
+<style>
+:root{
+  --bg:#f5f6f4;--panel:#ffffff;--ink:#1c2420;--muted:#5f6b66;--line:#dde3df;--line2:#c9d2cd;
+  --accent:#1f6b55;--accent-ink:#ffffff;--accent-soft:#e2f0ea;--accent-line:#a9d2c1;
+  --b:#3d5a9e;--b-soft:#e6ecf8;
+  --warn:#8a5a00;--warn-soft:#fff3dc;--err:#b3261e;--err-soft:#fdeceb;
+  --help:#f3f7f5;--helpline:#c7ddd3;--chip:#eef1ef;
+  --shadow:0 1px 2px rgba(20,30,25,.05),0 2px 8px rgba(20,30,25,.06);
+  --r:10px;color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#121614;--panel:#1a201d;--ink:#e4ebe7;--muted:#9aa7a1;--line:#2b3430;--line2:#3a4540;
+  --accent:#5cc29f;--accent-ink:#0b1d16;--accent-soft:#1c3a30;--accent-line:#2f6b56;
+  --b:#8fa9e6;--b-soft:#1f2a42;
+  --warn:#f0b35a;--warn-soft:#3a2c14;--err:#f28b82;--err-soft:#3b1d1b;
+  --help:#18241f;--helpline:#2e4a3e;--chip:#232b27;
+  --shadow:0 1px 2px rgba(0,0,0,.3);color-scheme:dark;
+}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+button,input,textarea,select{font:inherit;color:inherit}
+h1,h2,h3{line-height:1.25;margin:0}
+.muted{color:var(--muted)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px}
+header.top{background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+.toprow{display:flex;align-items:center;gap:12px;padding:12px 0 8px;flex-wrap:wrap}
+.brand{display:flex;flex-direction:column;min-width:0;flex:1}
+.brand h1{font-size:18px;font-weight:650;letter-spacing:-.01em}
+.brand small{color:var(--muted);font-size:12.5px}
+.pill{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:var(--bg);white-space:nowrap;cursor:pointer}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.pill.ok .dot{background:var(--accent)}.pill.err .dot{background:var(--err)}
+.pill.loading .dot{animation:pulse 1s infinite ease-in-out}
+@keyframes pulse{50%{opacity:.25}}
+.who{font-size:12.5px;color:var(--muted)}
+.linkbtn{border:0;background:none;color:var(--accent);font-size:12.5px;cursor:pointer;padding:0;margin-left:6px;text-decoration:underline;text-underline-offset:2px}
+nav.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+nav.tabs::-webkit-scrollbar{display:none}
+.tab{border:0;background:none;padding:9px 14px;border-bottom:2px solid transparent;color:var(--muted);cursor:pointer;white-space:nowrap;font-weight:500}
+.tab.on{color:var(--ink);border-bottom-color:var(--accent)}
+.tab:hover{color:var(--ink)}
+main{padding:22px 0 80px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line2);background:var(--panel);padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:500;line-height:1.2;text-decoration:none}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--muted)}
+.btn.ghost:hover{color:var(--ink);background:var(--chip)}
+.btn.sm{padding:5px 10px;font-size:13.5px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.mini{border:1px solid var(--line);background:transparent;border-radius:6px;padding:2px 8px;font-size:12.5px;color:var(--muted);cursor:pointer}
+.mini:hover{color:var(--ink);border-color:var(--line2)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.pad{padding:18px 20px}
+.banner{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:12px 16px;border-radius:var(--r);margin-bottom:16px;border:1px solid transparent}
+.banner.info{background:var(--accent-soft);border-color:var(--accent-line)}
+.banner.err{background:var(--err-soft)}
+.banner p{margin:0;flex:1;min-width:200px}
+input[type=text],input[type=password],input[type=search],textarea{width:100%;border:1px solid var(--line2);background:var(--panel);border-radius:8px;padding:9px 11px;outline:none;transition:border-color .15s,box-shadow .15s}
+textarea{resize:vertical;min-height:76px}
+input:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.note{font-size:13px;color:var(--muted);margin-top:4px}
+.note.err{color:var(--err)}
+
+/* belépés */
+.loginwrap{min-height:100vh;display:grid;place-items:center;padding:24px 16px}
+.login{max-width:440px;width:100%;padding:28px}
+.login h1{font-size:22px;margin-bottom:4px}
+.login .sub{margin:0 0 20px;color:var(--muted);font-size:14px}
+.frm{display:flex;flex-direction:column;gap:14px}
+.frm label{font-weight:600;font-size:14px;display:block;margin-bottom:5px}
+.frm .btn.primary{padding:10px 14px}
+.login .foot{margin:18px 0 0;font-size:13px;color:var(--muted)}
+
+/* sablonválasztó */
+.choose{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:16px}
+.tcard{text-align:left;cursor:pointer;padding:22px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);box-shadow:var(--shadow);transition:border-color .15s,transform .15s}
+.tcard:hover{border-color:var(--accent);transform:translateY(-1px)}
+.tcard .tag{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:6px;margin-bottom:10px}
+.tag.A,.badge.A{background:var(--accent-soft);color:var(--accent)}
+.tag.B,.badge.B{background:var(--b-soft);color:var(--b)}
+.tcard h3{font-size:18px;margin-bottom:6px}
+.tcard p{margin:0 0 10px;color:var(--muted)}
+.tcard ul{margin:0;padding-left:18px;color:var(--muted);font-size:14px}
+.intro h2{font-size:22px;margin-bottom:6px}
+.intro p{margin:0;color:var(--muted);max-width:760px}
+.hint{margin-top:18px;padding:14px 16px;background:var(--help);border:1px solid var(--helpline);border-radius:var(--r);font-size:14px}
+
+/* űrlap */
+.formbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.formbar .ttl{flex:1;min-width:200px}
+.formbar .ttl .eyebrow{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.formbar .ttl .nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:520px}
+.savestate{font-size:12.5px;color:var(--muted)}
+.savestate.dirty{color:var(--warn)}
+.toggle{display:inline-flex;align-items:center;gap:7px;font-size:13.5px;color:var(--muted);cursor:pointer;user-select:none}
+.toggle input{accent-color:var(--accent);width:16px;height:16px}
+.progress{height:4px;background:var(--line);border-radius:4px;overflow:hidden;margin-bottom:18px}
+.progress span{display:block;height:100%;background:var(--accent);transition:width .25s}
+.fgrid{display:grid;grid-template-columns:250px 1fr;gap:20px;align-items:start}
+.steps{position:sticky;top:110px;display:flex;flex-direction:column;gap:4px}
+.step{display:flex;gap:10px;align-items:center;text-align:left;border:1px solid transparent;background:transparent;border-radius:8px;padding:8px 10px;cursor:pointer;width:100%}
+.step:hover{background:var(--panel);border-color:var(--line)}
+.step.on{background:var(--panel);border-color:var(--line2);box-shadow:var(--shadow)}
+.step .num{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12.5px;font-weight:600;background:var(--chip);color:var(--muted)}
+.step.on .num{background:var(--accent);color:var(--accent-ink)}
+.step.done .num{background:var(--accent-soft);color:var(--accent)}
+.step .st{display:flex;flex-direction:column;min-width:0}
+.step b{font-weight:550;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.step small{font-size:12px;color:var(--muted)}
+.blockhead{margin-bottom:6px}
+.blockhead .eyebrow{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.blockhead h2{font-size:21px;margin-bottom:4px}
+.blockhead p{margin:0;color:var(--muted)}
+.field{padding:16px 0;border-top:1px solid var(--line)}
+.field:first-child{border-top:0}
+.flabel{display:flex;align-items:center;gap:8px;margin-bottom:7px;flex-wrap:wrap}
+.flabel label{font-weight:600}
+.req{color:var(--err);font-weight:600}
+.hbtn{flex:none;width:22px;height:22px;border-radius:50%;border:1px solid var(--line2);background:var(--panel);color:var(--muted);font-size:12.5px;font-weight:700;cursor:pointer;display:grid;place-items:center;padding:0}
+.hbtn:hover,.hbtn.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.cattag{font-size:11.5px;color:var(--muted);border:1px dashed var(--line2);padding:0 6px;border-radius:5px}
+.nkbtn{margin-left:auto;border:0;background:none;color:var(--muted);font-size:12.5px;cursor:pointer;padding:2px 4px;border-radius:5px;text-decoration:underline dotted;text-underline-offset:3px}
+.nkbtn:hover{color:var(--ink);background:var(--chip)}
+.help{background:var(--help);border:1px solid var(--helpline);border-left:3px solid var(--accent);border-radius:8px;padding:10px 12px;margin-bottom:9px;font-size:14px}
+.help p{margin:0}
+.help p+p{margin-top:6px}
+.help .ex{color:var(--muted)}
+.doirow{display:flex;gap:8px;flex-wrap:wrap}
+.doirow input{flex:1 1 220px;width:auto}
+.opts{display:flex;flex-wrap:wrap;gap:7px}
+.opt{display:inline-flex;align-items:baseline;gap:7px;border:1px solid var(--line2);background:var(--panel);border-radius:8px;padding:6px 10px;cursor:pointer;text-align:left;max-width:100%}
+.opt:hover{border-color:var(--accent)}
+.opt .code{font-weight:650;font-size:13px;letter-spacing:.02em;white-space:nowrap}
+.opt .desc{font-size:13px;color:var(--muted)}
+.opt.on{background:var(--accent-soft);border-color:var(--accent)}
+.opt.on .code{color:var(--accent)}
+.opt.on .desc{color:var(--ink)}
+.opt.custom .code::after{content:"új";font-size:10px;font-weight:600;margin-left:5px;padding:0 4px;border-radius:4px;background:var(--warn-soft);color:var(--warn);vertical-align:2px}
+.addform{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px;padding:10px;border:1px dashed var(--line2);border-radius:8px}
+.addform input{flex:1 1 140px;width:auto}
+.addform .ac-code{flex:0 1 150px;text-transform:uppercase}
+.scale{display:flex;gap:6px;flex-wrap:wrap}
+.sc{width:44px;height:40px;border:1px solid var(--line2);background:var(--panel);border-radius:8px;cursor:pointer;font-weight:600}
+.sc.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.scalelegend{font-size:12.5px;color:var(--muted);margin-top:5px}
+.navrow{display:flex;justify-content:space-between;gap:10px;margin-top:18px;padding-top:16px;border-top:1px solid var(--line);flex-wrap:wrap}
+
+/* lista */
+.listbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.listbar input[type=search]{flex:1;min-width:200px}
+.seg{display:inline-flex;border:1px solid var(--line2);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:var(--panel);padding:8px 12px;cursor:pointer;font-size:13.5px;color:var(--muted)}
+.seg button.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.stats{font-size:13.5px;color:var(--muted);margin-bottom:10px}
+.recs{display:flex;flex-direction:column;gap:8px}
+.rec{display:grid;grid-template-columns:auto 1fr auto;gap:4px 12px;align-items:start;text-align:left;width:100%;padding:13px 16px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);cursor:pointer}
+.rec:hover{border-color:var(--accent)}
+.badge{font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:6px;white-space:nowrap}
+.rec .rt{font-weight:550;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.rec .rm{font-size:12.5px;color:var(--muted);white-space:nowrap}
+.rec .rc{grid-column:2/4;display:flex;flex-wrap:wrap;gap:5px}
+.chip{font-size:11.5px;background:var(--chip);border-radius:5px;padding:1px 7px;color:var(--muted)}
+.empty{padding:40px 20px;text-align:center;color:var(--muted)}
+
+/* részletek */
+.overlay{position:fixed;inset:0;background:rgba(10,15,12,.45);z-index:50;display:flex;justify-content:center;align-items:flex-start;padding:30px 16px;overflow:auto}
+.modal{background:var(--panel);border-radius:12px;max-width:820px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.25)}
+.modal header{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:flex-start}
+.modal header .h{flex:1;min-width:0}
+.modal header h2{font-size:17px;margin-top:6px}
+.modal .body{padding:6px 20px 20px}
+.modal h3{font-size:14px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:20px 0 8px}
+.dl{display:grid;grid-template-columns:220px 1fr;border-top:1px solid var(--line)}
+.dl>div{padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}
+.dl .k{color:var(--muted);padding-right:12px}
+.dl .v{white-space:pre-wrap;word-break:break-word}
+.dl .v.none{color:var(--muted);font-style:italic}
+.modal footer{padding:14px 20px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap}
+.modal.wide{max-width:1040px}
+.modal.wide footer{position:sticky;bottom:0;background:var(--panel);border-radius:0 0 12px 12px;box-shadow:0 -4px 12px rgba(0,0,0,.06)}
+
+/* letöltés */
+.exrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:14px 0 0}
+.exlbl{font-weight:600;font-size:14px;min-width:80px}
+.exgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-top:14px}
+.exblk{border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.exblk .bh{font-weight:600;font-size:14px;padding-bottom:6px;margin-bottom:4px;border-bottom:1px solid var(--line)}
+.ck{display:flex;gap:8px;align-items:flex-start;font-size:13.5px;padding:3px 0;cursor:pointer;line-height:1.35}
+.ck input{accent-color:var(--accent);width:15px;height:15px;margin:1px 0 0;flex:none}
+.exsum{margin-right:auto;font-size:13.5px;color:var(--muted)}
+
+/* kódszótár */
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+.ccard h3{font-size:15px;margin-bottom:2px}
+.ccard .sub{font-size:12.5px;color:var(--muted);margin-bottom:10px}
+.ctable{width:100%;border-collapse:collapse;font-size:13.5px}
+.ctable td{padding:5px 0;border-top:1px solid var(--line);vertical-align:top}
+.ctable td.c{font-weight:650;white-space:nowrap;padding-right:12px;width:1%}
+.ctable td.s{font-size:11.5px;color:var(--muted);text-align:right;white-space:nowrap;padding-left:8px}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:9px;font-size:14px;z-index:80;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:calc(100% - 32px)}
+.toast.err{background:var(--err);color:#fff}
+[hidden]{display:none!important}
+
+@media (max-width:860px){
+  .fgrid{grid-template-columns:1fr}
+  .steps{position:static;flex-direction:row;overflow-x:auto;gap:6px;padding-bottom:4px}
+  .step{flex:none;width:auto;padding:6px 10px}
+  .step .st small{display:none}
+  .dl{grid-template-columns:1fr}
+  .dl .k{border-bottom:0!important;padding-bottom:0}
+  .rec{grid-template-columns:1fr}
+  .rec .rc{grid-column:1}
+  .cgrid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="config.js"></script>
+<script>
+'use strict';
+const CFG = window.CF_CONFIG || {};
+const API = String(CFG.apiUrl || '').trim();
+const APP_SUB = 'Gépi tanulás alapú kereslet-előrejelzés az FMCG szektorban';
+
+/* ---------- Segédfüggvények ---------- */
+const $ = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} },
+  del(k){ try{ localStorage.removeItem(k); }catch(e){} }
+};
+function uid(){
+  try{ if (window.crypto && crypto.randomUUID) return crypto.randomUUID(); }catch(e){}
+  return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+}
+function nowStr(){
+  const d = new Date(), p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+const normKey = s => String(s || '').trim().toUpperCase();
+function filled(v){ return Array.isArray(v) ? v.length > 0 : String(v == null ? '' : v).trim() !== ''; }
+function splitCodes(v){
+  if (Array.isArray(v)) return v;
+  return String(v == null ? '' : v).split(',').map(s => s.trim()).filter(Boolean);
+}
+let toastTimer;
+function toast(msg, isErr){
+  let t = $('.toast');
+  if (!t){ t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
+  t.textContent = msg; t.classList.toggle('err', !!isErr); t.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, isErr ? 6000 : 3000);
+}
+function download(name, blob){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+async function copyText(text){
+  try{ await navigator.clipboard.writeText(text); return true; }
+  catch(e){
+    const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+    let ok = false; try{ ok = document.execCommand('copy'); }catch(e2){}
+    ta.remove(); return ok;
+  }
+}
+
+/* ---------- Kódkategóriák és alapértékek ---------- */
+const CATS = {
+  review:'Review típusa', quart:'Folyóirat besorolása', sector:'FMCG-alszektor', source:'Adatforrás típusa',
+  level:'Aggregációs szint', freq:'Adatfrekvencia', model:'Modellcsalád', exog:'Exogén változó típusa',
+  scope:'Globális vagy lokális modell', ptype:'Előrejelzés típusa', valid:'Validációs eljárás',
+  exante:'Exogén változók jövőbeli értéke', metric:'Hibametrika', repro:'Replikálhatóság', chapter:'Disszertáció fejezete'
+};
+const DEFAULT_CODES = {
+  review:[['SZISZT','Szisztematikus review (pl. PRISMA szerint)'],['SCOPE','Scoping review, feltérképező áttekintés'],['NARR','Narratív áttekintés'],['BIBL','Bibliometriai elemzés'],['META','Meta-analízis']],
+  quart:[['Q1','SJR Q1'],['Q2','SJR Q2'],['Q3','SJR Q3'],['Q4','SJR Q4'],['NEMIDX','Nem indexelt folyóirat'],['KONF','Konferenciakiadvány'],['PREPRINT','Preprint, még nem lektorált']],
+  sector:[['ÉLELM','Élelmiszer'],['ITAL','Ital'],['HÁZT','Háztartási vegyi áru'],['SZÉP','Szépség- és testápolás'],['FRISS','Friss, romlandó áru'],['KISKER','Általános kiskereskedelem, FMCG-n túl is'],['VEGY','Több alszektor együtt']],
+  source:[['VÁLL','Vállalati, nem nyilvános adat'],['NYILV','Nyilvános adatbázis'],['VERS','Előrejelzési verseny adata (pl. M5)'],['SZIM','Szimulált adat']],
+  level:[['SKU','Termék (SKU) szint'],['SKU-BOLT','Termék és bolt kombináció'],['KAT','Termékkategória'],['RÉG','Régió vagy elosztóközpont'],['CÉG','Vállalati összesített']],
+  freq:[['NAP','Napi'],['HÉT','Heti'],['HÓ','Havi']],
+  model:[['STAT','Statisztikai: naiv, ETS, ARIMA/SARIMA, Prophet'],['ML-FA','Fa-alapú ML: Random Forest, XGBoost, LightGBM, CatBoost'],['ML-EGY','Egyéb ML: SVR, kNN, regularizált lineáris'],['DL-RNN','Rekurrens hálók: LSTM, GRU'],['DL-CNN','Konvolúciós hálók: CNN, TCN'],['DL-TR','Transformer-alapú: TFT, Informer, PatchTST'],['DL-EGY','Egyéb mély modellek: N-BEATS, N-HiTS, DeepAR'],['FM','Előtanított idősor-alapmodellek: Chronos, TimesFM'],['HIB','Hibrid modell (pl. statisztikai + ML)'],['ENS','Ensemble, modellkombináció']],
+  exog:[['ÁR','Saját és versenytárs ár'],['PROMÓ','Akció, kiemelés, szórólap'],['NAPT','Ünnep, hétvége, fizetésnap, iskolai szünet'],['IDŐJ','Hőmérséklet, csapadék, időjárás'],['MAKRO','Infláció, fogyasztói bizalom, munkanélküliség'],['ESEM','Sportesemény, helyi rendezvény, járvány'],['DIGIT','Google Trends, közösségi média, webes forgalom'],['EGY','Egyéb (a szöveges mezőben megnevezve)']],
+  scope:[['GLOB','Globális: egy modell az összes idősorra'],['LOK','Lokális: idősoronként külön modell'],['MINDK','Mindkettőt vizsgálja'],['NK','Nem közli']],
+  ptype:[['PONT','Pontbecslés'],['KVANT','Kvantilis vagy előrejelzési intervallum'],['ELOSZL','Teljes valószínűségi eloszlás'],['NK','Nem közli']],
+  valid:[['HOLD','Egyszeri holdout (tanító és teszt rész)'],['ROLL','Rolling origin, gördülő kiértékelés'],['TSCV','Idősoros keresztvalidáció'],['NEM','Nem közli']],
+  exante:[['EXPOST','Tényleges, utólag ismert értékek (ex post)'],['EXANTE','Maga is előrejelzett értékek (ex ante)'],['VEGY','Vegyes'],['NK','Nem közli'],['NINCS','Nem használ exogén változót']],
+  metric:[['MAE','Átlagos abszolút hiba'],['RMSE','Négyzetes középhiba gyöke'],['MAPE','Átlagos abszolút százalékos hiba'],['SMAPE','Szimmetrikus MAPE'],['WAPE','Súlyozott abszolút százalékos hiba'],['MASE','Skálázott abszolút hiba'],['RMSSE','Skálázott RMSE'],['WRMSSE','Súlyozott RMSSE (M5)'],['BIAS','Torzítás, átlagos előjeles hiba'],['PINBALL','Kvantilis (pinball) veszteség'],['CRPS','Folytonos rangsorolt valószínűségi pontszám']],
+  repro:[['ADAT+KÓD','Adat és kód is elérhető'],['CSAK-ADAT','Csak az adat elérhető'],['CSAK-KÓD','Csak a kód elérhető'],['NINCS','Egyik sem elérhető']],
+  chapter:[['BEVEZ','Bevezetés, problémafelvetés'],['SZAKIR','Szakirodalmi áttekintés'],['MÓDSZ','Módszertan'],['VITA','Eredmények megvitatása']]
+};
+
+/* ---------- Sablonok ----------
+   type: text | textarea | doi | codes (cat, single) | scale
+   k: a mező neve, egyben a táblázat oszlopneve (utólag ne változtasd meg)
+   nk:false = nincs „nem közli” gomb */
+const BIB = withKw => ({
+  t:'Bibliográfiai adatok',
+  intro:'Kezdd a DOI-val: a hivatkozást, az évet és a folyóiratot az eszköz kitölti helyetted.',
+  f:[
+    {k:'DOI', type:'doi', nk:false, help:'Írd be vagy másold be a cikk DOI-ját, majd kattints a „Kitöltés DOI alapján” gombra. A Hivatkozás, az Év és a Folyóirat mező a Crossref adatbázisból kitöltődik (a már kitöltött mezőket nem írja felül). Ha a cikknek nincs DOI-ja, hagyd üresen, és töltsd ki kézzel a többi mezőt.', ex:'10.xxxx/xxxxx (a https://doi.org/ előtag is maradhat)'},
+    {k:'Hivatkozás', type:'textarea', req:true, nk:false, help:'A cikk teljes hivatkozása APA 7 formátumban. A DOI alapján kitöltött változatot ellenőrizd: az APA a cikkcímben csak az első szót és a tulajdonneveket írja nagybetűvel, a Crossref viszont gyakran minden szót nagybetűvel adja vissza.', ex:'Szerző, A., & Szerző, B. (2023). A cikk címe. Folyóirat neve, 39(2), 100–120. https://doi.org/…'},
+    {k:'Év', type:'text', nk:false, help:'A megjelenés éve. Online first cikknél az online megjelenés éve.', ex:'2023'},
+    {k:'Folyóirat', type:'text', nk:false, help:'A folyóirat teljes neve, rövidítés nélkül.', ex:'International Journal of Forecasting'},
+    {k:'Besorolás', type:'codes', cat:'quart', single:true, help:'A folyóirat SJR (scimagojr.com) szerinti kvartilise a megjelenés évében, a témához legközelebbi tudományterületen. Ha több területen eltér, a legjobbat válaszd.'},
+    {k:'Idézettség', type:'text', help:'A Google Scholar szerinti idézetszám, a lekérdezés dátumával. Később ebből látszik, mely művek a terület alapművei.', ex:'142 (2026.11.02.)'},
+    withKw && {k:'Kulcsszavak', type:'text', help:'A szerzők által megadott kulcsszavak, vesszővel elválasztva. A saját keresési stratégiád finomításához hasznos.', ex:'demand forecasting, machine learning, retail, promotions'}
+  ].filter(Boolean)
+});
+
+const TPL = {
+  A: {
+    name:'A sablon · Review cikk', short:'Review',
+    blocks:[
+      BIB(true),
+      { t:'A review módszertana', intro:'Mennyire szisztematikus és megismételhető a cikkek kiválogatása. Ebből dől el, mennyire támaszkodhatsz a megállapításaira.', f:[
+        {k:'Review típusa', type:'codes', cat:'review', help:'Milyen módszerrel készült az áttekintés. Ha a szerzők PRISMA-folyamatábrát közölnek a cikkválogatásról, szinte biztosan szisztematikus. Ha csak „áttekintik a szakirodalmat” módszertani leírás nélkül, akkor narratív.'},
+        {k:'Protokoll', type:'text', help:'A követett protokoll (PRISMA, Kitchenham stb.), és hogy előre regisztrálták-e (pl. PROSPERO, OSF).', ex:'PRISMA 2020, nem regisztrált'},
+        {k:'Adatbázisok', type:'text', help:'Mely adatbázisokban kerestek.', ex:'Scopus, Web of Science, IEEE Xplore'},
+        {k:'Keresőkifejezés', type:'textarea', help:'Szó szerint másold be, ha a cikk közli. A saját keresési stratégiád összeállításához ez az egyik leghasznosabb adat.', ex:'("demand forecasting" OR "sales forecasting") AND ("machine learning" OR "deep learning") AND (retail OR FMCG)'},
+        {k:'Lefedett időszak', type:'text', help:'Mely években megjelent cikkeket vontak be.', ex:'2010–2023'},
+        {k:'Beválasztási és kizárási kritériumok', type:'textarea', help:'Mi alapján került be vagy esett ki egy cikk. Röviden, pontokba szedve is jó.', ex:'Csak lektorált, angol nyelvű folyóiratcikkek; kizárva a konferenciaanyagok és az energetikai alkalmazások.'},
+        {k:'Cikkek száma', type:'text', help:'A kezdeti találatok és a végül elemzett cikkek száma.', ex:'1248 találat, ebből 87 elemzett cikk'},
+        {k:'Minőségértékelés', type:'textarea', help:'Értékelték-e a bevont cikkek minőségét, és milyen szempontrendszerrel. A minőségértékelés hiánya gyengíti a review megállapításait.'}
+      ]},
+      { t:'Lefedettség', intro:'Mire terjed ki az áttekintés: ágazat, szint, időtáv, modellek és változók.', f:[
+        {k:'Szektor', type:'codes', cat:'sector', help:'Mely ágazatok cikkeit dolgozza fel. Ha az FMCG csak egy része a mintának, a KISKER vagy VEGY kódot is jelöld.'},
+        {k:'Előrejelzési szint', type:'codes', cat:'level', help:'Milyen aggregációs szintű előrejelzésekkel foglalkozik a review.'},
+        {k:'Horizont', type:'text', help:'Rövid táv (napok, 1–4 hét), közép táv (1–6 hónap) vagy hosszú táv. Ha számszerűen megadja, írd be.', ex:'Főként rövid táv, 1–28 nap'},
+        {k:'Tárgyalt modellcsaládok', type:'codes', cat:'model', help:'Mely modellcsaládokat tekinti át a review. Ha valamelyik fontos modell nem illik a kódokba, vegyél fel új kódot.'},
+        {k:'Tárgyalt exogén változók', type:'codes', cat:'exog', help:'Mely külső változótípusokat tárgyal. A disszertáció szempontjából ez kiemelten fontos mező: ha egy review egyáltalán nem foglalkozik exogén változókkal, azt is rögzítsd a megállapításoknál.'}
+      ]},
+      { t:'Fő megállapítások', intro:'A szerzők állításai a saját szavaiddal. Saját vélemény ide még ne kerüljön, annak a kritikai blokk a helye.', f:[
+        {k:'Központi üzenet', type:'textarea', nk:false, help:'A review legfontosabb tanulsága 2–3 mondatban. Úgy írd meg, hogy fél év múlva a cikk újraolvasása nélkül is értsd.'},
+        {k:'Modellek összevetése', type:'textarea', help:'Mely modellcsaládok teljesítenek jobban a szerzők szerint, és milyen feltételek mellett (adatméret, intermittens kereslet, horizont, aggregációs szint).', ex:'A fa-alapú modellek nagy, sok idősoros adaton jellemzően jobbak a statisztikai modelleknél; rövid idősoroknál az előny eltűnik.'},
+        {k:'Exogén változók szerepe', type:'textarea', help:'Mely külső változók javítják a pontosságot, melyek nem, és mekkora mértékben, ha a szerzők számszerűsítik. Ha ellentmondó eredményeket említ, azt is írd le.'},
+        {k:'Domináns metrikák', type:'codes', cat:'metric', help:'A review szerint a területen leggyakrabban használt hibamértékek.'},
+        {k:'Azonosított kutatási rések', type:'textarea', help:'Mit hiányolnak a szerzők a szakirodalomból. A saját kutatásod indoklásához ez az egyik legértékesebb mező, ezért pontosan fogalmazz.'},
+        {k:'Javasolt jövőbeli irányok', type:'textarea', help:'Milyen további kutatásokat javasolnak a szerzők.'}
+      ]},
+      { t:'Kritikai értékelés', intro:'Innentől a saját véleményed következik.', f:[
+        {k:'Erősségek', type:'textarea', nk:false, help:'Miben jó ez a review: módszertani alaposság, lefedettség, jól használható összefoglaló táblázatok.'},
+        {k:'Gyengeségek', type:'textarea', nk:false, help:'Például szűk keresés, egyetlen adatbázis, csak angol nyelvű cikkek, hiányzó minőségértékelés, elavult időszak, nem FMCG-specifikus minta.'},
+        {k:'Aktualitás', type:'textarea', nk:false, help:'Lefedi-e az újabb irányokat: globális modellek, transformer-alapú modellek, előtanított idősor-alapmodellek. Egy 2019 előtti review ezekről jellemzően még nem szól.'},
+        {k:'Megbízhatóság (1-5)', type:'scale', help:'Mennyire építhetsz erre a cikkre a disszertációban. 1: alig használható. 3: közepes, óvatosan hivatkozható. 5: alapmű, bátran építhetsz rá.'},
+        {k:'Megbízhatóság indoklása', type:'text', nk:false, help:'Egy mondat arról, miért ezt a pontszámot adtad.'}
+      ]},
+      { t:'Felhasználás a saját kutatásban', intro:'Hogyan hasznosul a cikk a disszertációban. Ez köti össze a feldolgozást a saját munkáddal.', f:[
+        {k:'Fejezet', type:'codes', cat:'chapter', help:'A disszertáció mely fejezetében fogod felhasználni.'},
+        {k:'Kapcsolódó saját kutatási kérdés', type:'textarea', nk:false, help:'Melyik kutatási kérdésedhez vagy hipotézisedhez ad muníciót, és pontosan mit.'},
+        {k:'Továbbolvasandó cikkek', type:'textarea', nk:false, help:'Hólabda-módszer: 3–5 hivatkozott kulcscikk, amit érdemes külön feldolgozni. Szerző és év elég, ha kell, egy szó arról, miért.', ex:'Makridakis és mtsai (2022), M5 eredmények; Januschowski és mtsai (2020), globális modellek'},
+        {k:'Idézetek', type:'textarea', nk:false, help:'Legfeljebb 2–3 szó szerinti idézet, mindegyik oldalszámmal. Csak akkor, ha a pontos megfogalmazás fontos.', ex:'„…” (p. 12)'},
+        {k:'Kérdés a témavezetőnek', type:'textarea', nk:false, help:'Ami nem volt világos, vagy amiről egyeztetni szeretnél.'}
+      ]}
+    ]
+  },
+  B: {
+    name:'B sablon · Empirikus cikk', short:'Empirikus',
+    blocks:[
+      BIB(false),
+      { t:'Kutatási cél', intro:'Mit akartak megtudni a szerzők, és mit állítanak újnak.', f:[
+        {k:'Vizsgált probléma', type:'textarea', nk:false, help:'Milyen gyakorlati vagy elméleti problémára keresnek választ, 1–2 mondatban.'},
+        {k:'Kutatási kérdés / hipotézis', type:'textarea', help:'Szó szerint vagy pontos összefoglalásban. Ha nincs explicit kutatási kérdés, írd le, mit vizsgálnak ténylegesen.'},
+        {k:'Deklarált hozzájárulás', type:'textarea', help:'Mit állítanak a szerzők a saját újdonságuknak. Később a kritikai részben érdemes összevetni azzal, amit valóban mutattak.'}
+      ]},
+      { t:'Adat', intro:'Milyen adaton dolgoztak. Az eredmények általánosíthatósága nagyrészt ezen múlik.', f:[
+        {k:'Adatforrás típusa', type:'codes', cat:'source', help:'Honnan származik az adat.'},
+        {k:'Adatbázis neve', type:'text', help:'A konkrét adatbázis vagy a vállalat leírása, ha anonim.', ex:'M5 (Walmart), Corporación Favorita, Rossmann, vagy: egy közép-európai drogérialánc'},
+        {k:'Ország', type:'text', help:'Melyik ország vagy régió adata.', ex:'USA (Kalifornia, Texas, Wisconsin)'},
+        {k:'Alszektor', type:'codes', cat:'sector', help:'Az FMCG mely alszektora.'},
+        {k:'Időszak', type:'text', help:'Az adat kezdő és záró időpontja.', ex:'2019.01–2023.12'},
+        {k:'Frekvencia', type:'codes', cat:'freq', help:'Az adat időbeli felbontása.'},
+        {k:'Aggregációs szint', type:'codes', cat:'level', help:'Milyen szinten készült az előrejelzés.'},
+        {k:'Méret', type:'text', help:'Az idősorok száma és a megfigyelések száma. Ha csak a sorok számát adják meg, azt írd.', ex:'3049 termék × 10 bolt, 1941 nap'},
+        {k:'Keresletmintázat', type:'text', help:'Intermittens (sok nullás időszak) vagy sima kereslet, és ha közlik, az arányuk. Intermittens keresletnél a MAPE félrevezető, ezt érdemes figyelni.', ex:'Az idősorok kb. 60%-a intermittens'},
+        {k:'Készlethiány kezelése', type:'text', help:'Az eladás nem azonos a kereslettel: készlethiány idején a valós kereslet nem látszik (cenzúrázott kereslet). Foglalkoztak-e ezzel, és hogyan?'},
+        {k:'Replikálhatóság', type:'codes', cat:'repro', help:'Elérhető-e nyilvánosan az adat és a kód. Ha elérhető, a linket az Átvehető elemek mezőbe írd.'}
+      ]},
+      { t:'Változók', intro:'Mit jeleztek előre és mivel. A disszertáció témája miatt az exogén változók itt a legfontosabbak.', f:[
+        {k:'Célváltozó', type:'text', help:'Mit jeleznek előre, milyen mértékegységben.', ex:'Napi eladott mennyiség (darab)'},
+        {k:'Belső változók', type:'textarea', help:'A vállalaton belül keletkező magyarázó változók: késleltetett eladások, saját ár, promóció, készlet, termékjellemzők.'},
+        {k:'Exogén változók', type:'codes', cat:'exog', help:'A vállalaton kívülről származó magyarázó változók típusai. Ha egy változótípus nincs a listán, vegyél fel új kódot, hogy mások is használhassák.'},
+        {k:'Exogén változók pontosan', type:'textarea', help:'A pontos változók, a forrásuk és az időbeli, térbeli felbontásuk.', ex:'Napi középhőmérséklet a bolt településén (meteorológiai szolgálat); nemzeti ünnepek; havi infláció (statisztikai hivatal)'},
+        {k:'Jellemzőképzés', type:'textarea', help:'Milyen származtatott változókat hoztak létre: naptári dummy változók, gördülő átlagok, késleltetések, kategorikus kódolás (one-hot, target encoding).'},
+        {k:'Változószelekció', type:'text', help:'Hogyan döntötték el, mely változók kerülnek a modellbe, ha volt ilyen lépés.', ex:'Rekurzív változóelhagyás, LightGBM fontosság alapján'},
+        {k:'Változófontosság', type:'textarea', help:'Hogyan mérték az egyes változók hozzájárulását (SHAP, permutációs fontosság, ablációs teszt), és mi jött ki. Melyik exogén változó számított a legtöbbet?'}
+      ]},
+      { t:'Modellek', intro:'Mit hasonlítottak össze mivel.', f:[
+        {k:'Benchmark modellek', type:'codes', cat:'model', help:'A viszonyítási alapként használt modellek. Ha nincs legalább egy egyszerű statisztikai benchmark (naiv, szezonális naiv, ETS, ARIMA), az eredmény nehezen értelmezhető; ezt jelezd a kritikánál.'},
+        {k:'Vizsgált modellek', type:'codes', cat:'model', help:'A szerzők által javasolt vagy tesztelt modellek családjai.'},
+        {k:'Pontos modellnevek', type:'text', help:'A konkrét modellek nevei, ha lényeges, főbb beállításokkal.', ex:'LightGBM, LSTM (2 réteg), TFT'},
+        {k:'Globális vagy lokális', type:'codes', cat:'scope', single:true, help:'Globális: egyetlen modell tanul az összes idősoron, és megoszthatja a mintázatokat. Lokális: minden idősorra külön modell. Nagy termékszámnál ez a különbség sokszor többet számít, mint a modell típusa.'},
+        {k:'Hiperparaméter-hangolás', type:'text', help:'Hogyan hangolták a modelleket, és milyen adaton. Ha a tesztadaton hangoltak, az torzítja az eredményt.', ex:'Bayesi optimalizálás (Optuna), 100 próbálkozás, külön validációs időszakon'},
+        {k:'Előrejelzés típusa', type:'codes', cat:'ptype', single:true, help:'Pontbecslést adnak, vagy bizonytalanságot is (intervallum, kvantilis, eloszlás). Készletgazdálkodási döntésekhez a bizonytalanság is kell.'}
+      ]},
+      { t:'Validációs design', intro:'Hogyan mérték a pontosságot. Ezen múlik, mennyire hihetőek a számok.', f:[
+        {k:'Tanító és teszt felosztás', type:'text', help:'Hogyan osztották fel az adatot. Idősoroknál csak időrendi felosztás elfogadható.', ex:'Tanítás: 2019–2022, teszt: 2023 utolsó 28 napja'},
+        {k:'Validációs eljárás', type:'codes', cat:'valid', help:'Egyszeri tesztidőszak, vagy több egymást követő kiértékelési pont. A rolling origin megbízhatóbb, mint egyetlen holdout.'},
+        {k:'Előrejelzési horizont', type:'text', help:'Hány lépésre előre jeleztek.', ex:'1–28 nap'},
+        {k:'Exogén változók jövőbeli értéke', type:'codes', cat:'exante', single:true, help:'Kulcskérdés a témádban: valós előrejelzéskor a jövő időjárása vagy inflációja még nem ismert. Ha a szerzők a tényleges, utólag ismert értékeket használták (ex post), az eredmény túlbecsüli a gyakorlatban elérhető pontosságot.'},
+        {k:'Adatszivárgás kockázata', type:'textarea', help:'Került-e jövőbeli információ a tanításba? Tipikus jelek: a teljes időszakon számolt normalizálás, véletlenszerű (nem időrendi) felosztás, a tesztidőszakot is lefedő gördülő átlagok.'}
+      ]},
+      { t:'Eredmények', intro:'Mit találtak, számokkal.', f:[
+        {k:'Metrikák', type:'codes', cat:'metric', help:'Milyen hibamértékekkel értékeltek.'},
+        {k:'Legjobb modell', type:'text', help:'Melyik modell teljesített a legjobban, és milyen feltételek mellett (pl. csak rövid horizonton).'},
+        {k:'Javulás a benchmarkhoz', type:'text', help:'Százalékban, a metrika és a benchmark megnevezésével.', ex:'LightGBM: RMSSE 12%-kal jobb a szezonális naivnál'},
+        {k:'Exogén változók hozzájárulása', type:'textarea', help:'Mennyit javult a pontosság a külső változókkal a nélkülük futtatott modellhez képest. Ha nem futtattak ilyen összevetést, jelöld „nem közli”-vel. Ez maga is fontos információ.'},
+        {k:'Szignifikanciateszt', type:'text', help:'Tesztelték-e, hogy a modellek közti különbség statisztikailag szignifikáns.', ex:'Diebold-Mariano-teszt, 5%-os szinten'},
+        {k:'Számítási igény', type:'text', help:'Futási idő vagy erőforrásigény, ha közlik. Gyakorlati alkalmazásnál ez is döntő lehet.'},
+        {k:'Üzleti hatás', type:'textarea', help:'Számszerűsítették-e a hatást készletszintben, kiszolgálási szintben vagy költségben.'}
+      ]},
+      { t:'Korlátok és kritikai értékelés', intro:'A szerzők által elismert korlátok, majd a saját véleményed.', f:[
+        {k:'Korlátok a szerzők szerint', type:'textarea', help:'Amit a szerzők maguk említenek korlátként.'},
+        {k:'Saját kritika', type:'textarea', nk:false, help:'Például gyenge vagy hiányzó benchmark, túlillesztés, szelektív eredményközlés, egyetlen adatsor, rövid tesztidőszak, ex post exogén értékek.'},
+        {k:'Általánosíthatóság', type:'textarea', nk:false, help:'Mennyire vihetők át az eredmények más FMCG-alszektorra, országra vagy a saját adatodra.'},
+        {k:'Megbízhatóság (1-5)', type:'scale', help:'Mennyire építhetsz erre a cikkre a disszertációban. 1: alig használható. 3: közepes, óvatosan hivatkozható. 5: alapmű, bátran építhetsz rá.'},
+        {k:'Megbízhatóság indoklása', type:'text', nk:false, help:'Egy mondat arról, miért ezt a pontszámot adtad.'}
+      ]},
+      { t:'Felhasználás a saját kutatásban', intro:'Hogyan hasznosul a cikk a disszertációban.', f:[
+        {k:'Fejezet', type:'codes', cat:'chapter', help:'A disszertáció mely fejezetében fogod felhasználni.'},
+        {k:'Átvehető elemek', type:'textarea', nk:false, help:'Adatkezelési megoldás, változó, modell vagy validációs eljárás, amit a saját kutatásodban átvehetsz. Ha van nyilvános kód vagy adat, ide írd a linket.'},
+        {k:'Kapcsolódó saját kutatási kérdés', type:'textarea', nk:false, help:'Melyik kutatási kérdésedhez vagy hipotézisedhez ad muníciót, és pontosan mit.'},
+        {k:'Idézetek', type:'textarea', nk:false, help:'Legfeljebb 2–3 szó szerinti idézet, mindegyik oldalszámmal.', ex:'„…” (p. 12)'},
+        {k:'Kérdés a témavezetőnek', type:'textarea', nk:false, help:'Ami nem volt világos, vagy amiről egyeztetni szeretnél.'}
+      ]}
+    ]
+  }
+};
+function allFields(type){ return TPL[type].blocks.flatMap(b => b.f); }
+function fieldDef(type, k){ return allFields(type).find(f => f.k === k); }
+
+/* ---------- Állapot ---------- */
+const S = {
+  view:'new', projekt:'', projektNev:'', token:'', lejar:0,
+  user:store.get('cf_user', ''), loginMsg:'',
+  status:'loading', statusMsg:'', lastSync:'',
+  sheetCodes:[], codes:{}, records:{A:[], B:[]},
+  current:null, dirty:false, helpAll:store.get('cf_helpall', false), helpOpen:{},
+  q:'', filter:'all', detail:null, export:null
+};
+const draftKey = () => 'cf_draft_' + S.projekt;
+const dirtyKey = () => 'cf_dirty_' + S.projekt;
+
+function rebuildCodes(){
+  const out = {};
+  for (const cat of Object.keys(CATS)) out[cat] = (DEFAULT_CODES[cat] || []).map(([kod, leiras]) => ({kod, leiras}));
+  for (const r of S.sheetCodes){
+    const cat = r.kategoria; if (!cat) continue;
+    if (!out[cat]) out[cat] = [];
+    const kod = String(r.kod || '').toUpperCase();
+    if (!kod || out[cat].some(c => c.kod.toUpperCase() === kod)) continue;
+    out[cat].push({kod, leiras:String(r.leiras || ''), src:String(r.hozzaadta || ''), custom:true});
+  }
+  S.codes = out;
+}
+
+/* ---------- Szerver ---------- */
+async function api(action, data){
+  const body = Object.assign({action, token:S.token}, data || {});
+  let r, j;
+  try{
+    r = await fetch(API, {method:'POST', redirect:'follow', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(body)});
+  }catch(e){ throw new Error('A szerver nem érhető el. Ellenőrizd az internetkapcsolatot.'); }
+  try{ j = await r.json(); }
+  catch(e){ throw new Error('A szerver nem a várt választ adta. Ha ez tartósan fennáll, szólj a projekt gazdájának.'); }
+  if (j.code === 'AUTH' && action !== 'login'){
+    logout(j.error || 'A belépés lejárt.');
+    const err = new Error(j.error); err.auth = true; throw err;
+  }
+  if (!j.ok) throw new Error(j.error || 'Ismeretlen hiba');
+  return j;
+}
+
+async function sync(quiet){
+  S.status = 'loading'; renderHeader();
+  try{
+    const j = await api('getAll');
+    S.sheetCodes = j.codes || [];
+    S.records = {A:(j.records && j.records.A) || [], B:(j.records && j.records.B) || []};
+    if (j.projekt && j.projekt.nev) S.projektNev = j.projekt.nev;
+    S.status = 'ok'; S.statusMsg = ''; S.lastSync = nowStr().slice(11);
+    rebuildCodes();
+    if (!quiet) toast('Szinkronizálva a közös táblázattal.');
+  }catch(e){
+    if (e.auth) return;
+    S.status = 'err'; S.statusMsg = e.message;
+    if (!quiet) toast('Nem sikerült elérni a táblázatot: ' + e.message, true);
+  }
+  renderHeader();
+  const typing = document.activeElement && document.activeElement.closest && document.activeElement.closest('#block');
+  if (!typing) renderView();
+}
+
+/* ---------- Belépés, kilépés ---------- */
+function enter(auth){
+  S.projekt = auth.projekt; S.projektNev = auth.nev || auth.projekt; S.token = auth.token; S.lejar = auth.lejar;
+  const d = store.get(draftKey(), null);
+  S.current = (d && d.type && TPL[d.type]) ? d : null;
+  if (S.current && !(S.current.step < TPL[S.current.type].blocks.length)) S.current.step = 0;
+  S.dirty = !!(S.current && store.get(dirtyKey(), false));
+  S.records = {A:[], B:[]}; S.sheetCodes = []; S.view = 'new'; S.detail = null; S.q = ''; S.filter = 'all';
+  rebuildCodes();
+  document.title = 'Cikkfeldolgozó · ' + S.projektNev;
+  renderShell(); renderHeader(); renderView();
+  sync(true);
+}
+function logout(msg){
+  store.del('cf_auth');
+  S.token = ''; S.detail = null; S.export = null; S.dirty = false; S.loginMsg = msg || '';
+  renderDetail(); renderExport();
+  renderLogin(S.projekt);
+}
+function renderLogin(prefill){
+  document.title = 'Cikkfeldolgozó';
+  $('#app').innerHTML = `<div class="loginwrap"><div class="card login">
+    <h1>Cikkfeldolgozó</h1>
+    <p class="sub">${esc(APP_SUB)}. Szakirodalmi feldolgozó sablonok közös adatbázissal.</p>
+    ${!API ? `<div class="banner err"><p><b>Az oldal még nincs beállítva.</b> A config.js fájlban add meg az Apps Script webalkalmazás címét.</p></div>` : ''}
+    ${S.loginMsg ? `<div class="banner info"><p>${esc(S.loginMsg)} A nem mentett munkád piszkozatként megmaradt.</p></div>` : ''}
+    <form id="loginForm" class="frm" autocomplete="on">
+      <div><label for="lgKey">Projektkulcs</label><input type="text" id="lgKey" name="username" autocomplete="username" value="${esc(prefill)}" placeholder="pl. FMCG-ML" autocapitalize="characters" spellcheck="false"></div>
+      <div><label for="lgPw">Jelszó</label><input type="password" id="lgPw" name="password" autocomplete="current-password"></div>
+      <div><label for="lgName">A neved</label><input type="text" id="lgName" autocomplete="name" value="${esc(S.user)}" placeholder="pl. Kovács Anna"><div class="note">Ez kerül a táblázat Feldolgozó oszlopába.</div></div>
+      <button class="btn primary" type="submit" id="lgBtn" ${API ? '' : 'disabled'}>Belépés</button>
+      <div class="note err" id="lgMsg" role="alert"></div>
+    </form>
+    <p class="foot">A projektkulcsot és a jelszót a témavezetődtől kapod. Sikeres belépés után ez a böngésző két hétig emlékszik rád.</p>
+  </div></div>`;
+  const f = prefill ? $('#lgPw') : $('#lgKey'); if (f) f.focus();
+}
+async function doLogin(){
+  const key = normKey($('#lgKey').value), pw = $('#lgPw').value, name = $('#lgName').value.trim();
+  const msg = $('#lgMsg'), btn = $('#lgBtn');
+  if (!key || !pw || !name){ msg.textContent = 'Mindhárom mezőt töltsd ki.'; return; }
+  btn.disabled = true; btn.textContent = 'Belépés…'; msg.textContent = '';
+  try{
+    const j = await api('login', {projekt:key, jelszo:pw});
+    S.user = name; store.set('cf_user', name);
+    const auth = {projekt:j.projekt.kulcs, nev:j.projekt.nev, token:j.token, lejar:j.lejar};
+    store.set('cf_auth', auth); S.loginMsg = '';
+    try{ history.replaceState(null, '', location.pathname + '?p=' + encodeURIComponent(auth.projekt)); }catch(e){}
+    enter(auth);
+  }catch(err){
+    msg.textContent = err.message; btn.disabled = false; btn.textContent = 'Belépés';
+  }
+}
+
+/* ---------- Aktuális feldolgozás ---------- */
+function newCurrent(type){ return {type, id:uid(), fields:{}, step:0, saved:false, savedAt:''}; }
+function saveDraft(){ store.set(draftKey(), S.current); }
+function setDirty(v){ S.dirty = v; store.set(dirtyKey(), v); }
+function markDirty(){ setDirty(true); saveDraft(); updateFormMeta(); }
+function recordToFields(type, row){
+  const fields = {};
+  for (const f of allFields(type)){
+    const v = row[f.k];
+    if (v == null || v === '') continue;
+    fields[f.k] = (f.type === 'codes' && !f.single) ? splitCodes(v) : String(v);
+  }
+  return fields;
+}
+function currentTitle(){
+  const h = S.current && S.current.fields['Hivatkozás'];
+  return h ? String(h).split('\n')[0] : 'Új, még cím nélküli cikk';
+}
+
+async function saveCurrent(){
+  const c = S.current; if (!c) return;
+  if (!filled(c.fields['Hivatkozás'])){ toast('A Hivatkozás mező kitöltése kötelező a mentéshez.', true); gotoField('Hivatkozás'); return; }
+  const fields = {};
+  for (const f of allFields(c.type)){
+    const v = c.fields[f.k];
+    fields[f.k] = Array.isArray(v) ? v.join(', ') : (v == null ? '' : String(v));
+  }
+  const rec = {id:c.id, type:c.type, user:S.user, fields};
+  const btns = $$('[data-act="save"]'); btns.forEach(b => { b.disabled = true; });
+  try{
+    const j = await api('saveRecord', {record:rec});
+    const when = j.modositva || nowStr();
+    upsertCache(rec, when);
+    c.saved = true; c.savedAt = when; setDirty(false); saveDraft();
+    toast('Mentve a közös táblázatba.');
+  }catch(e){
+    if (!e.auth) toast('A mentés nem sikerült: ' + e.message + ' A piszkozat ezen a gépen megmaradt.', true);
+  }finally{
+    btns.forEach(b => { b.disabled = false; }); updateFormMeta(); renderHeader();
+  }
+}
+function upsertCache(rec, when){
+  const arr = S.records[rec.type];
+  const i = arr.findIndex(r => String(r.id) === rec.id);
+  const prev = i >= 0 ? arr[i] : null;
+  const row = Object.assign({}, prev || {}, rec.fields, {
+    'id':rec.id, 'Feldolgozó':(prev && prev['Feldolgozó']) || rec.user,
+    'Létrehozva':(prev && prev['Létrehozva']) || when, 'Módosítva':when, 'Utoljára módosította':rec.user
+  });
+  if (i >= 0) arr[i] = row; else arr.push(row);
+}
+
+async function addCode(cat, kod, leiras){
+  kod = String(kod || '').trim().toUpperCase().replace(/,/g, ' ').replace(/\s+/g, ' ');
+  leiras = String(leiras || '').trim();
+  if (!kod){ toast('Adj meg egy kódot.', true); return null; }
+  if ((S.codes[cat] || []).some(c => c.kod.toUpperCase() === kod)){ toast('Ez a kód már szerepel ebben a kategóriában.'); return kod; }
+  const row = {kategoria:cat, kod, leiras, hozzaadta:S.user, datum:nowStr()};
+  try{
+    const j = await api('addCode', {code:row});
+    row.kod = j.kod || kod;
+    S.sheetCodes.push(row); rebuildCodes();
+    toast(`Az új kód (${row.kod}) bekerült a közös táblázatba, mindenkinél megjelenik.`);
+    return row.kod;
+  }catch(e){
+    if (!e.auth) toast('A kód mentése nem sikerült: ' + e.message, true);
+    return null;
+  }
+}
+
+/* ---------- DOI alapú kitöltés (Crossref) ---------- */
+function cleanDoi(s){
+  return String(s || '').trim().replace(/^https?:\/\/(dx\.)?doi\.org\//i, '').replace(/^doi:\s*/i, '').trim();
+}
+function stripTags(s){ return String(s || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim(); }
+function apaAuthors(list){
+  const a = (list || []).filter(x => x.family || x.name).map(x => {
+    if (!x.family) return x.name;
+    const ini = String(x.given || '').split(/\s+/).filter(Boolean)
+      .map(g => g.split('-').map(p => p.replace(/\./g, '').charAt(0).toUpperCase() + '.').join('-')).join(' ');
+    return x.family + (ini ? ', ' + ini : '');
+  });
+  if (!a.length) return '';
+  if (a.length === 1) return a[0];
+  if (a.length <= 20) return a.slice(0, -1).join(', ') + ', & ' + a[a.length - 1];
+  return a.slice(0, 19).join(', ') + ', … ' + a[a.length - 1];
+}
+function crossrefToFields(m, doi){
+  const dp = (m.issued || m['published-print'] || m['published-online'] || {})['date-parts'];
+  const year = dp && dp[0] && dp[0][0] ? String(dp[0][0]) : '';
+  const title = stripTags((m.title || [])[0]);
+  const journal = stripTags((m['container-title'] || [])[0]);
+  const authors = apaAuthors(m.author);
+  let ref = authors ? authors + ' ' : '';
+  ref += '(' + (year || 'é. n.') + '). ';
+  if (title) ref += title + (/[.?!]$/.test(title) ? ' ' : '. ');
+  if (journal){
+    ref += journal;
+    if (m.volume) ref += ', ' + m.volume + (m.issue ? '(' + m.issue + ')' : '');
+    if (m.page) ref += ', ' + String(m.page).replace(/-/g, '–');
+    else if (m['article-number']) ref += ', ' + m['article-number'];
+    ref += '. ';
+  }
+  ref += 'https://doi.org/' + doi;
+  return {'Hivatkozás':ref.trim(), 'Év':year, 'Folyóirat':journal};
+}
+async function doiLookup(btn){
+  const doi = cleanDoi(S.current.fields['DOI']);
+  if (!/^10\.\d{4,9}\/\S+$/.test(doi)){ toast('Ez nem tűnik érvényes DOI-nak. A DOI 10.-tel kezdődik, pl. 10.1016/j.ijforecast…', true); return; }
+  btn.disabled = true; const old = btn.textContent; btn.textContent = 'Lekérés…';
+  try{
+    const r = await fetch('https://api.crossref.org/works/' + encodeURIComponent(doi));
+    if (r.status === 404){ toast('A Crossref nem ismeri ezt a DOI-t. Ellenőrizd, vagy töltsd ki kézzel a mezőket.', true); return; }
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const m = (await r.json()).message || {};
+    const got = crossrefToFields(m, doi);
+    S.current.fields['DOI'] = doi;
+    const done = [], kept = [];
+    for (const [k, v] of Object.entries(got)){
+      if (!v) continue;
+      if (filled(S.current.fields[k])) kept.push(k); else { S.current.fields[k] = v; done.push(k); }
+    }
+    markDirty(); renderView();
+    if (done.length) toast('Kitöltve: ' + done.join(', ') + '.' + (kept.length ? ' A már kitöltött mezőket (' + kept.join(', ') + ') nem írtam felül.' : ' Ellenőrizd a hivatkozást.'));
+    else toast('Minden érintett mező ki volt már töltve, nem írtam felül semmit.');
+  }catch(e){
+    toast('A DOI lekérése nem sikerült (' + e.message + '). Töltsd ki kézzel a mezőket.', true);
+  }finally{
+    btn.disabled = false; btn.textContent = old;
+  }
+}
+
+/* ---------- Megjelenítés: keret ---------- */
+function renderShell(){
+  $('#app').innerHTML = `
+  <header class="top"><div class="wrap">
+    <div class="toprow">
+      <div class="brand"><h1>Cikkfeldolgozó</h1><small id="projLine"></small></div>
+      <span class="who" id="who"></span>
+      <button class="pill" id="status" data-act="sync" title="Szinkronizálás most"></button>
+      <button class="btn ghost sm" data-act="logout">Kilépés</button>
+    </div>
+    <nav class="tabs" id="tabs"></nav>
+  </div></header>
+  <main><div class="wrap" id="view"></div></main>`;
+}
+function renderHeader(){
+  if (!$('#tabs')) return;
+  const n = S.records.A.length + S.records.B.length;
+  const tabs = [['new','Feldolgozás'],['list',`Feldolgozott cikkek <span class="muted">(${n})</span>`],['codes','Kódszótár']];
+  $('#tabs').innerHTML = tabs.map(([v, l]) => `<button class="tab ${S.view === v ? 'on' : ''}" data-act="tab" data-view="${v}">${l}</button>`).join('');
+  $('#projLine').innerHTML = `${esc(S.projektNev)} · ${esc(S.projekt)}<button class="linkbtn" data-act="copy-link" title="A projekt linkje, jelszó nélkül">link másolása</button>`;
+  $('#who').textContent = S.user;
+  const map = {ok:['ok', 'Közös táblázat' + (S.lastSync ? ' · ' + S.lastSync : '')], loading:['loading', 'Szinkronizálás…'], err:['err', 'Kapcsolati hiba']};
+  const [cls, txt] = map[S.status] || map.loading;
+  const st = $('#status');
+  st.className = 'pill ' + cls;
+  st.innerHTML = `<span class="dot"></span>${esc(txt)}`;
+  st.title = S.status === 'err' ? S.statusMsg : 'Kattints az újraszinkronizáláshoz';
+}
+function renderView(){
+  const v = $('#view'); if (!v) return;
+  if (S.view === 'new'){ v.innerHTML = renderNew(); updateFormMeta(); }
+  else if (S.view === 'list') v.innerHTML = renderList();
+  else v.innerHTML = renderCodesView();
+  renderDetail();
+}
+function errBanner(){
+  return S.status === 'err' ? `<div class="banner err"><p><b>Nem érem el a közös táblázatot.</b> ${esc(S.statusMsg)} A munkád piszkozatként ezen a gépen megmarad.</p><button class="btn sm" data-act="sync">Újra</button></div>` : '';
+}
+
+/* ---------- Feldolgozás nézet ---------- */
+function renderNew(){
+  return errBanner() + (S.current && S.current.type ? renderForm() : renderChooser());
+}
+function renderChooser(){
+  return `
+  <div class="intro"><h2>Új cikk feldolgozása</h2><p>Válaszd ki, milyen típusú cikket dolgozol fel. A sablon blokkonként végigvezet, minden mezőnél a <b>?</b> gomb megmutatja, mit és hogyan írj be.</p></div>
+  <div class="choose">
+    <button class="tcard" data-act="choose" data-type="A">
+      <span class="tag A">A sablon</span><h3>Review cikk</h3>
+      <p>Szakirodalmi áttekintés, amely más cikkeket elemez és összegez.</p>
+      <ul><li>6 blokk, kb. 45–60 perc</li><li>Fókusz: módszertan, lefedettség, kutatási rések</li></ul>
+    </button>
+    <button class="tcard" data-act="choose" data-type="B">
+      <span class="tag B">B sablon</span><h3>Empirikus cikk</h3>
+      <p>Saját adaton modellt épít, tesztel vagy összehasonlít.</p>
+      <ul><li>9 blokk, kb. 45–75 perc</li><li>Fókusz: adat, exogén változók, validáció, eredmények</li></ul>
+    </button>
+  </div>
+  <div class="hint"><b>Melyiket válasszam?</b> Ha a cikk saját előrejelzési kísérletet futtat (akkor is, ha hosszú szakirodalmi résszel kezd), a B sablon kell. Ha kizárólag más cikkeket tekint át, az A sablon.</div>`;
+}
+function renderSteps(){
+  const c = S.current;
+  return TPL[c.type].blocks.map((b, i) => {
+    const n = b.f.length, m = b.f.filter(f => filled(c.fields[f.k])).length, done = m === n;
+    return `<button class="step ${i === c.step ? 'on' : ''} ${done ? 'done' : ''}" data-act="goto" data-i="${i}"><span class="num">${done && i !== c.step ? '✓' : i + 1}</span><span class="st"><b>${esc(b.t)}</b><small>${m}/${n} kitöltve</small></span></button>`;
+  }).join('');
+}
+function progressPct(){
+  const fs = allFields(S.current.type);
+  return Math.round(100 * fs.filter(f => filled(S.current.fields[f.k])).length / fs.length);
+}
+function renderForm(){
+  const c = S.current, tpl = TPL[c.type], blk = tpl.blocks[c.step], last = c.step === tpl.blocks.length - 1;
+  return `
+  <div class="formbar">
+    <div class="ttl"><div class="eyebrow"><span class="tag ${c.type}" style="padding:1px 7px;border-radius:5px">${esc(tpl.short)}</span> &nbsp;${c.saved ? 'Mentett cikk szerkesztése' : 'Új feldolgozás'}</div><div class="nm" id="curTitle">${esc(currentTitle())}</div></div>
+    <label class="toggle"><input type="checkbox" data-act="helpall" ${S.helpAll ? 'checked' : ''}> Súgó minden mezőnél</label>
+    <span class="savestate" id="saveState"></span>
+    <button class="btn ghost sm" data-act="new-record">Új cikk</button>
+    <button class="btn primary" data-act="save">Mentés</button>
+  </div>
+  <div class="progress"><span id="prog" style="width:${progressPct()}%"></span></div>
+  <div class="fgrid">
+    <aside class="steps" id="steps">${renderSteps()}</aside>
+    <section class="card pad" id="block">
+      <div class="blockhead"><div class="eyebrow">${c.step + 1}. blokk a ${tpl.blocks.length}-ból</div><h2>${esc(blk.t)}</h2><p>${esc(blk.intro)}</p></div>
+      <div class="fields">${blk.f.map(renderField).join('')}</div>
+      <div class="navrow">
+        <button class="btn" data-act="prev" ${c.step === 0 ? 'disabled' : ''}>Előző blokk</button>
+        ${last ? `<button class="btn primary" data-act="save">Mentés a közös táblázatba</button>` : `<button class="btn primary" data-act="next">Következő: ${esc(tpl.blocks[c.step + 1].t)}</button>`}
+      </div>
+    </section>
+  </div>`;
+}
+function renderField(f){
+  const v = S.current.fields[f.k], k = esc(f.k);
+  const open = S.helpAll || S.helpOpen[f.k];
+  let input = '';
+  if (f.type === 'text') input = `<input type="text" data-k="${k}" value="${esc(v)}" aria-label="${k}">`;
+  else if (f.type === 'textarea') input = `<textarea data-k="${k}" rows="3" aria-label="${k}">${esc(v)}</textarea>`;
+  else if (f.type === 'doi') input = `<div class="doirow"><input type="text" data-k="${k}" value="${esc(v)}" aria-label="${k}" placeholder="10.xxxx/xxxxx" spellcheck="false"><button type="button" class="btn" data-act="doi">Kitöltés DOI alapján</button></div>`;
+  else if (f.type === 'scale') input = `<div class="scale">${[1,2,3,4,5].map(n => `<button type="button" class="sc ${String(v) === String(n) ? 'on' : ''}" data-act="scale" data-k="${k}" data-n="${n}">${n}</button>`).join('')}</div><div class="scalelegend">1: alig használható · 3: közepes · 5: alapmű</div>`;
+  else if (f.type === 'codes') input = renderCodesInput(f, v);
+  const nk = (f.type === 'text' || f.type === 'textarea') && f.nk !== false;
+  return `<div class="field" data-field="${k}">
+    <div class="flabel"><label>${esc(f.k)}${f.req ? ' <span class="req">*</span>' : ''}</label>
+      <button type="button" class="hbtn ${open ? 'on' : ''}" data-act="help" data-k="${k}" aria-label="Súgó: ${k}" title="Súgó">?</button>
+      ${f.type === 'codes' ? `<span class="cattag">${f.single ? 'egy választás' : 'több is választható'} · bővíthető</span>` : ''}
+      ${nk ? `<button type="button" class="nkbtn" data-act="nk" data-k="${k}" title="A cikk erről nem közöl információt">nem közli</button>` : ''}
+    </div>
+    <div class="help" ${open ? '' : 'hidden'}><p>${esc(f.help)}</p>${f.ex ? `<p class="ex"><b>Példa:</b> ${esc(f.ex)}</p>` : ''}</div>
+    ${input}
+  </div>`;
+}
+function renderCodesInput(f, v){
+  const k = esc(f.k);
+  const sel = f.single ? (filled(v) ? [String(v)] : []) : splitCodes(v);
+  const list = (S.codes[f.cat] || []).slice();
+  for (const s of sel) if (!list.some(c => c.kod === s)) list.push({kod:s, leiras:'(a listán már nem szereplő kód)'});
+  return `<div class="opts">${list.map(c => `<button type="button" class="opt ${sel.includes(c.kod) ? 'on' : ''} ${c.custom ? 'custom' : ''}" data-act="opt" data-k="${k}" data-code="${esc(c.kod)}" aria-pressed="${sel.includes(c.kod)}" title="${esc(c.custom && c.src ? 'Hozzáadta: ' + c.src : '')}"><span class="code">${esc(c.kod)}</span><span class="desc">${esc(c.leiras)}</span></button>`).join('')}
+    <button type="button" class="mini" data-act="addcode-open" data-k="${k}" style="align-self:center">+ új érték</button></div>
+    <div class="addform" hidden>
+      <input type="text" class="ac-code" placeholder="Kód, pl. GTREND" maxlength="24">
+      <input type="text" class="ac-desc" placeholder="Rövid leírás, hogy mások is értsék">
+      <button type="button" class="btn sm primary" data-act="addcode-save" data-k="${k}" data-cat="${esc(f.cat)}">Hozzáadás mindenkinek</button>
+      <button type="button" class="btn sm ghost" data-act="addcode-cancel" data-k="${k}">Mégse</button>
+    </div>`;
+}
+function fieldEl(k){ return $$('[data-field]').find(e => e.dataset.field === k); }
+function rerenderField(k){
+  const el = fieldEl(k), f = fieldDef(S.current.type, k); if (!el || !f) return;
+  const tmp = document.createElement('div'); tmp.innerHTML = renderField(f);
+  el.replaceWith(tmp.firstElementChild);
+}
+function updateFormMeta(){
+  if (S.view !== 'new' || !S.current || !S.current.type) return;
+  const steps = $('#steps'); if (steps) steps.innerHTML = renderSteps();
+  const p = $('#prog'); if (p) p.style.width = progressPct() + '%';
+  const t = $('#curTitle'); if (t) t.textContent = currentTitle();
+  const s = $('#saveState');
+  if (s){
+    if (S.dirty){ s.textContent = 'Nem mentett változások (piszkozat ezen a gépen)'; s.className = 'savestate dirty'; }
+    else if (S.current.saved){ s.textContent = 'Mentve: ' + S.current.savedAt; s.className = 'savestate'; }
+    else { s.textContent = ''; s.className = 'savestate'; }
+  }
+}
+function gotoField(k){
+  const i = TPL[S.current.type].blocks.findIndex(b => b.f.some(f => f.k === k));
+  if (i >= 0 && i !== S.current.step){ S.current.step = i; renderView(); }
+  const el = fieldEl(k); if (el){ el.scrollIntoView({behavior:'smooth', block:'center'}); const inp = $('input,textarea', el); if (inp) inp.focus(); }
+}
+
+/* ---------- Feldolgozott cikkek ---------- */
+function codesSummary(type, r){
+  const keys = type === 'A' ? ['Review típusa', 'Tárgyalt modellcsaládok', 'Tárgyalt exogén változók'] : ['Vizsgált modellek', 'Exogén változók', 'Validációs eljárás'];
+  return keys.flatMap(k => splitCodes(r[k])).slice(0, 10);
+}
+function listRows(){
+  const q = S.q.trim().toLowerCase();
+  let rows = ['A', 'B'].flatMap(t => S.records[t].map(r => ({t, r})));
+  if (S.filter !== 'all') rows = rows.filter(x => x.t === S.filter);
+  if (q) rows = rows.filter(x => Object.values(x.r).some(v => String(v).toLowerCase().includes(q)));
+  rows.sort((a, b) => String(b.r['Módosítva'] || '').localeCompare(String(a.r['Módosítva'] || '')));
+  return rows;
+}
+function renderList(){
+  const q = S.q.trim().toLowerCase();
+  const total = S.records.A.length + S.records.B.length;
+  const rows = listRows();
+  return `${errBanner()}
+  <div class="listbar">
+    <input type="search" id="q" placeholder="Keresés szerzőre, címre, kódra, bármilyen szövegre…" value="${esc(S.q)}">
+    <div class="seg">${[['all','Mind'],['A','Review'],['B','Empirikus']].map(([v, l]) => `<button class="${S.filter === v ? 'on' : ''}" data-act="filter" data-f="${v}">${l}</button>`).join('')}</div>
+    <button class="btn" data-act="sync">Frissítés</button>
+    <button class="btn" data-act="export" ${total ? '' : 'disabled'}>Letöltés táblázatként</button>
+  </div>
+  <div class="stats">${total} feldolgozott cikk (${S.records.A.length} review, ${S.records.B.length} empirikus)${q || S.filter !== 'all' ? ` · ${rows.length} találat` : ''}</div>
+  ${rows.length ? `<div class="recs">${rows.map(({t, r}) => `
+    <button class="rec" data-act="open-record" data-type="${t}" data-id="${esc(r.id)}">
+      <span class="badge ${t}">${TPL[t].short}</span>
+      <span class="rt">${esc(String(r['Hivatkozás'] || '(nincs hivatkozás)').split('\n')[0])}</span>
+      <span class="rm">${esc(r['Feldolgozó'] || '')}${r['Módosítva'] ? ' · ' + esc(r['Módosítva']) : ''}</span>
+      <span class="rc">${codesSummary(t, r).map(c => `<span class="chip">${esc(c)}</span>`).join('')}</span>
+    </button>`).join('')}</div>`
+    : `<div class="card empty">${total ? 'Nincs a szűrésnek megfelelő cikk.' : (S.status === 'loading' ? 'Betöltés…' : 'Még nincs feldolgozott cikk. Az első mentés után itt jelenik meg mindenki munkája.')}</div>`}`;
+}
+function findRecord(t, id){ return S.records[t].find(r => String(r.id) === String(id)); }
+function renderDetail(){
+  let ov = $('#detailOv');
+  const r = S.detail && findRecord(S.detail.t, S.detail.id);
+  if (!r){ S.detail = null; if (ov) ov.remove(); return; }
+  const t = S.detail.t;
+  const known = new Set(['id', 'Feldolgozó', 'Létrehozva', 'Módosítva', 'Utoljára módosította']);
+  const blocks = TPL[t].blocks.map(b => {
+    b.f.forEach(f => known.add(f.k));
+    return `<h3>${esc(b.t)}</h3><div class="dl">${b.f.map(f => {
+      const has = filled(r[f.k]);
+      return `<div class="k">${esc(f.k)}</div><div class="v ${has ? '' : 'none'}">${has ? esc(r[f.k]) : 'nincs kitöltve'}</div>`;
+    }).join('')}</div>`;
+  }).join('');
+  const extra = Object.keys(r).filter(k => !known.has(k) && filled(r[k]));
+  const extraHtml = extra.length ? `<h3>Egyéb oszlopok a táblázatban</h3><div class="dl">${extra.map(k => `<div class="k">${esc(k)}</div><div class="v">${esc(r[k])}</div>`).join('')}</div>` : '';
+  if (!ov){ ov = document.createElement('div'); ov.className = 'overlay'; ov.id = 'detailOv'; ov.dataset.act = 'close-detail'; document.body.appendChild(ov); }
+  ov.innerHTML = `<div class="modal" role="dialog" aria-modal="true">
+    <header><div class="h"><span class="badge ${t}">${TPL[t].name}</span><h2>${esc(String(r['Hivatkozás'] || '').split('\n')[0])}</h2>
+      <div class="muted" style="font-size:13px;margin-top:4px">Feldolgozta: ${esc(r['Feldolgozó'] || '?')} · létrehozva ${esc(r['Létrehozva'] || '?')} · módosítva ${esc(r['Módosítva'] || '?')}${r['Utoljára módosította'] ? ' (' + esc(r['Utoljára módosította']) + ')' : ''}</div></div>
+      <button class="btn ghost sm" data-act="close-detail">Bezárás</button></header>
+    <div class="body">${blocks}${extraHtml}</div>
+    <footer><button class="btn" data-act="close-detail">Bezárás</button><button class="btn primary" data-act="edit-record" data-type="${t}" data-id="${esc(r.id)}">Megnyitás szerkesztésre</button></footer>
+  </div>`;
+}
+
+/* ---------- Letöltés táblázatként ---------- */
+const XLSX_URL = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+const META_COLS = ['Feldolgozó', 'Létrehozva', 'Módosítva'];
+const MATRIX = {
+  A:['Hivatkozás','Év','Folyóirat','Besorolás','Review típusa','Lefedett időszak','Szektor','Előrejelzési szint','Tárgyalt modellcsaládok','Tárgyalt exogén változók','Domináns metrikák','Központi üzenet','Azonosított kutatási rések','Megbízhatóság (1-5)','Fejezet'],
+  B:['Hivatkozás','Év','Folyóirat','Besorolás','Adatforrás típusa','Ország','Alszektor','Frekvencia','Aggregációs szint','Exogén változók','Benchmark modellek','Vizsgált modellek','Globális vagy lokális','Validációs eljárás','Exogén változók jövőbeli értéke','Metrikák','Legjobb modell','Exogén változók hozzájárulása','Megbízhatóság (1-5)','Fejezet']
+};
+function exportGroups(t){
+  return TPL[t].blocks.map(b => ({t:b.t, f:b.f.map(f => f.k)})).concat([{t:'Adminisztratív adatok', f:META_COLS}]);
+}
+function openExport(){
+  const t = S.filter !== 'all' ? S.filter : (S.records.B.length > S.records.A.length ? 'B' : 'A');
+  S.export = {t, scope:'all', cols:new Set(store.get('cf_export_' + t, MATRIX[t]))};
+  renderExport();
+}
+function setExportType(t){
+  S.export.t = t; S.export.cols = new Set(store.get('cf_export_' + t, MATRIX[t])); renderExport();
+}
+function exportCols(){
+  const e = S.export;
+  return exportGroups(e.t).flatMap(g => g.f).filter(k => e.cols.has(k));
+}
+function exportRows(){
+  const e = S.export;
+  const rows = e.scope === 'view' ? listRows().filter(x => x.t === e.t).map(x => x.r) : S.records[e.t].slice();
+  return rows.sort((a, b) => String(a['Hivatkozás'] || '').localeCompare(String(b['Hivatkozás'] || ''), 'hu'));
+}
+function searchActive(){ return !!S.q.trim(); }
+function renderExport(){
+  let ov = $('#exportOv');
+  if (!S.export){ if (ov) ov.remove(); return; }
+  const e = S.export;
+  if (e.scope === 'view' && !searchActive()) e.scope = 'all';
+  const nAll = S.records[e.t].length, nView = listRows().filter(x => x.t === e.t).length;
+  const cols = exportCols(), rows = exportRows();
+  if (!ov){ ov = document.createElement('div'); ov.className = 'overlay'; ov.id = 'exportOv'; ov.dataset.act = 'close-export'; document.body.appendChild(ov); }
+  const scrollTop = ov.scrollTop;
+  ov.innerHTML = `<div class="modal wide" role="dialog" aria-modal="true" aria-label="Letöltés táblázatként">
+    <header><div class="h"><h2 style="margin-top:0">Letöltés táblázatként</h2><div class="muted" style="font-size:13.5px;margin-top:4px">Válaszd ki a sablont és az oszlopokat. A böngésző megjegyzi a választást a következő letöltéshez.</div></div>
+      <button class="btn ghost sm" data-act="close-export">Bezárás</button></header>
+    <div class="body">
+      <div class="exrow"><span class="exlbl">Sablon</span><div class="seg">${['A','B'].map(t => `<button class="${e.t === t ? 'on' : ''}" data-act="ex-type" data-t="${t}">${TPL[t].short} (${S.records[t].length})</button>`).join('')}</div></div>
+      ${searchActive() ? `<div class="exrow"><span class="exlbl">Cikkek</span><div class="seg"><button class="${e.scope === 'all' ? 'on' : ''}" data-act="ex-scope" data-s="all">Mind (${nAll})</button><button class="${e.scope === 'view' ? 'on' : ''}" data-act="ex-scope" data-s="view">Csak a keresés találatai (${nView})</button></div></div>` : ''}
+      <div class="exrow"><span class="exlbl">Oszlopok</span><div class="row" style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="mini" data-act="ex-preset" data-p="matrix" title="Hivatkozás, év, folyóirat, a kódolt mezők és a legfontosabb szöveges mezők">Szintézismátrix</button>
+        <button class="mini" data-act="ex-preset" data-p="all">Minden mező</button>
+        <button class="mini" data-act="ex-preset" data-p="none">Egyik sem</button></div></div>
+      <div class="exgrid">${exportGroups(e.t).map((g, gi) => {
+        const on = g.f.filter(k => e.cols.has(k)).length;
+        return `<div class="exblk"><label class="ck bh"><input type="checkbox" data-exblk="${gi}" ${on === g.f.length ? 'checked' : ''} ${on && on < g.f.length ? 'data-ind="1"' : ''}>${esc(g.t)}</label>
+          ${g.f.map(k => `<label class="ck"><input type="checkbox" data-excol="${esc(k)}" ${e.cols.has(k) ? 'checked' : ''}>${esc(k)}</label>`).join('')}</div>`;
+      }).join('')}</div>
+    </div>
+    <footer><span class="exsum">${rows.length} cikk · ${cols.length} oszlop</span>
+      <button class="btn" data-act="ex-go" data-fmt="csv" ${rows.length && cols.length ? '' : 'disabled'}>CSV</button>
+      <button class="btn primary" data-act="ex-go" data-fmt="xlsx" ${rows.length && cols.length ? '' : 'disabled'}>Letöltés Excelben</button></footer>
+  </div>`;
+  $$('[data-ind]', ov).forEach(c => { c.indeterminate = true; });
+  ov.scrollTop = scrollTop;
+}
+function cellVal(k, v){
+  if (v == null) return '';
+  const s = String(v);
+  if ((k === 'Év' || k === 'Megbízhatóság (1-5)') && /^\d+$/.test(s.trim())) return Number(s.trim());
+  return s;
+}
+function colWidth(t, k){
+  if (k === 'Hivatkozás') return 60;
+  const f = fieldDef(t, k);
+  if (!f) return 17;
+  if (f.type === 'textarea') return 45;
+  if (f.type === 'codes') return 22;
+  if (f.type === 'scale' || k === 'Év') return 12;
+  return 24;
+}
+function loadXLSX(){
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  return new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = XLSX_URL;
+    s.onload = () => window.XLSX ? res(window.XLSX) : rej(new Error('az Excel-modul nem töltődött be'));
+    s.onerror = () => rej(new Error('az Excel-modul nem töltődött be'));
+    document.head.appendChild(s);
+  });
+}
+async function doExport(fmt, btn){
+  const t = S.export.t, cols = exportCols(), rows = exportRows();
+  if (!cols.length || !rows.length) return;
+  store.set('cf_export_' + t, cols);
+  const aoa = [cols].concat(rows.map(r => cols.map(c => cellVal(c, r[c]))));
+  const base = `Cikkfeldolgozo_${S.projekt}_${TPL[t].short}_${nowStr().slice(0, 10)}`;
+  if (fmt === 'csv'){
+    const q = v => '"' + String(v).replace(/"/g, '""') + '"';
+    const csv = '﻿' + aoa.map(r => r.map(q).join(';')).join('\r\n');
+    download(base + '.csv', new Blob([csv], {type:'text/csv;charset=utf-8'}));
+    toast(`Letöltve: ${rows.length} cikk, ${cols.length} oszlop (CSV, pontosvesszővel tagolva).`);
+    return;
+  }
+  const old = btn.textContent; btn.disabled = true; btn.textContent = 'Készül…';
+  try{
+    const X = await loadXLSX();
+    const ws = X.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = cols.map(c => ({wch:colWidth(t, c)}));
+    ws['!autofilter'] = {ref:X.utils.encode_range({s:{r:0, c:0}, e:{r:aoa.length - 1, c:cols.length - 1}})};
+    const wb = X.utils.book_new();
+    X.utils.book_append_sheet(wb, ws, TPL[t].short);
+    X.writeFile(wb, base + '.xlsx');
+    toast(`Letöltve: ${rows.length} cikk, ${cols.length} oszlop.`);
+  }catch(err){
+    toast('Az Excel-fájl nem készült el (' + err.message + '). Próbáld a CSV gombot, az Excel azt is megnyitja.', true);
+  }finally{
+    btn.disabled = false; btn.textContent = old;
+  }
+}
+
+/* ---------- Kódszótár ---------- */
+function renderCodesView(){
+  return `${errBanner()}<div class="intro" style="margin-bottom:16px"><h2>Kódszótár</h2><p>A sablonok választható értékei kategóriánként. Új kódot itt vagy az űrlapon (a „+ új érték” gombbal) lehet felvenni. Az új kód a projekt közös táblázatába kerül, és mindenkinél megjelenik. Kódot törölni a táblázat Kodok lapján lehet.</p></div>
+  <div class="cgrid">${Object.keys(CATS).map(cat => `
+    <div class="card pad ccard">
+      <h3>${esc(CATS[cat])}</h3><div class="sub">${(S.codes[cat] || []).length} érték</div>
+      <table class="ctable">${(S.codes[cat] || []).map(c => `<tr><td class="c">${esc(c.kod)}</td><td>${esc(c.leiras)}</td><td class="s">${c.custom ? esc(c.src) : ''}</td></tr>`).join('')}</table>
+      <div class="addform" style="margin-top:12px"><input type="text" class="ac-code" placeholder="Új kód" maxlength="24"><input type="text" class="ac-desc" placeholder="Rövid leírás"><button class="btn sm" data-act="cv-add" data-cat="${cat}">Hozzáadás</button></div>
+    </div>`).join('')}</div>`;
+}
+
+/* ---------- Események ---------- */
+function go(step){ S.current.step = step; saveDraft(); renderView(); window.scrollTo(0, 0); }
+document.addEventListener('click', async e => {
+  const el = e.target.closest('[data-act]'); if (!el) return;
+  const act = el.dataset.act, k = el.dataset.k;
+  if (el.classList.contains('overlay') && e.target !== el) return;
+  switch (act){
+    case 'tab': S.view = el.dataset.view; S.detail = null; renderHeader(); renderView(); window.scrollTo(0, 0); break;
+    case 'sync': sync(false); break;
+    case 'logout': logout(''); break;
+    case 'copy-link': {
+      const link = location.origin + location.pathname + '?p=' + encodeURIComponent(S.projekt);
+      toast(await copyText(link) ? 'A projekt linkje a vágólapon. A jelszót külön add át.' : link);
+      break;
+    }
+    case 'choose':
+      S.current = newCurrent(el.dataset.type); setDirty(false); S.helpOpen = {}; saveDraft();
+      renderView(); window.scrollTo(0, 0); break;
+    case 'new-record':
+      if (S.dirty && !confirm('Vannak nem mentett változások. Biztosan új cikket kezdesz? A mostani piszkozat elvész.')) return;
+      S.current = null; setDirty(false); store.del(draftKey()); renderView(); window.scrollTo(0, 0); break;
+    case 'goto': go(+el.dataset.i); break;
+    case 'next': go(S.current.step + 1); break;
+    case 'prev': go(S.current.step - 1); break;
+    case 'help': {
+      if (S.helpAll) return;
+      S.helpOpen[k] = !S.helpOpen[k];
+      const fe = fieldEl(k); if (fe){ $('.help', fe).hidden = !S.helpOpen[k]; el.classList.toggle('on', !!S.helpOpen[k]); }
+      break;
+    }
+    case 'helpall': S.helpAll = el.checked; store.set('cf_helpall', S.helpAll); renderView(); break;
+    case 'nk': {
+      S.current.fields[k] = 'nem közli';
+      const fe = fieldEl(k), inp = fe && $('input[data-k],textarea[data-k]', fe); if (inp) inp.value = 'nem közli';
+      markDirty(); break;
+    }
+    case 'doi': doiLookup(el); break;
+    case 'scale': S.current.fields[k] = el.dataset.n; rerenderField(k); markDirty(); break;
+    case 'opt': {
+      const f = fieldDef(S.current.type, k), code = el.dataset.code;
+      if (f.single) S.current.fields[k] = S.current.fields[k] === code ? '' : code;
+      else {
+        const arr = splitCodes(S.current.fields[k]).slice(), i = arr.indexOf(code);
+        if (i >= 0) arr.splice(i, 1); else arr.push(code);
+        S.current.fields[k] = arr;
+      }
+      rerenderField(k); markDirty(); break;
+    }
+    case 'addcode-open': { const af = $('.addform', fieldEl(k)); af.hidden = false; $('.ac-code', af).focus(); break; }
+    case 'addcode-cancel': { $('.addform', fieldEl(k)).hidden = true; break; }
+    case 'addcode-save': {
+      const af = $('.addform', fieldEl(k));
+      el.disabled = true;
+      const kod = await addCode(el.dataset.cat, $('.ac-code', af).value, $('.ac-desc', af).value);
+      el.disabled = false;
+      if (kod && S.current){
+        const f = fieldDef(S.current.type, k);
+        if (f.single) S.current.fields[k] = kod;
+        else { const arr = splitCodes(S.current.fields[k]).slice(); if (!arr.includes(kod)) arr.push(kod); S.current.fields[k] = arr; }
+        markDirty(); rerenderField(k);
+      }
+      break;
+    }
+    case 'save': saveCurrent(); break;
+    case 'filter': S.filter = el.dataset.f; renderView(); break;
+    case 'open-record': S.detail = {t:el.dataset.type, id:el.dataset.id}; renderDetail(); break;
+    case 'close-detail': S.detail = null; renderDetail(); break;
+    case 'export': openExport(); break;
+    case 'close-export': S.export = null; renderExport(); break;
+    case 'ex-type': setExportType(el.dataset.t); break;
+    case 'ex-scope': S.export.scope = el.dataset.s; renderExport(); break;
+    case 'ex-preset': {
+      const p = el.dataset.p, t = S.export.t;
+      S.export.cols = new Set(p === 'matrix' ? MATRIX[t] : p === 'all' ? exportGroups(t).flatMap(g => g.f) : []);
+      renderExport(); break;
+    }
+    case 'ex-go': doExport(el.dataset.fmt, el); break;
+    case 'edit-record': {
+      if (S.dirty && !confirm('A jelenlegi feldolgozásban nem mentett változások vannak. Megnyitod helyette ezt a cikket?')) return;
+      const t = el.dataset.type, r = findRecord(t, el.dataset.id); if (!r) return;
+      S.current = {type:t, id:String(r.id), fields:recordToFields(t, r), step:0, saved:true, savedAt:r['Módosítva'] || ''};
+      setDirty(false); saveDraft(); S.detail = null; S.view = 'new';
+      renderHeader(); renderView(); window.scrollTo(0, 0); break;
+    }
+    case 'cv-add': {
+      const card = el.closest('.ccard');
+      el.disabled = true;
+      const kod = await addCode(el.dataset.cat, $('.ac-code', card).value, $('.ac-desc', card).value);
+      el.disabled = false;
+      if (kod) renderView();
+      break;
+    }
+  }
+});
+document.addEventListener('change', e => {
+  const el = e.target; if (!S.export) return;
+  if (el.dataset.excol){ if (el.checked) S.export.cols.add(el.dataset.excol); else S.export.cols.delete(el.dataset.excol); renderExport(); }
+  else if (el.dataset.exblk){
+    const g = exportGroups(S.export.t)[+el.dataset.exblk];
+    g.f.forEach(k => { if (el.checked) S.export.cols.add(k); else S.export.cols.delete(k); });
+    renderExport();
+  }
+});
+document.addEventListener('submit', e => {
+  if (e.target.id === 'loginForm'){ e.preventDefault(); doLogin(); }
+});
+document.addEventListener('input', e => {
+  const el = e.target;
+  if (el.id === 'q'){
+    S.q = el.value; const pos = el.selectionStart; renderView();
+    const q = $('#q'); if (q){ q.focus(); try{ q.setSelectionRange(pos, pos); }catch(x){} }
+    return;
+  }
+  if (S.current && el.dataset && el.dataset.k && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') && !el.classList.contains('ac-code') && !el.classList.contains('ac-desc')){
+    S.current.fields[el.dataset.k] = el.value; markDirty();
+  }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && S.export){ S.export = null; renderExport(); }
+  else if (e.key === 'Escape' && S.detail){ S.detail = null; renderDetail(); }
+  if ((e.ctrlKey || e.metaKey) && e.key === 's' && S.token && S.view === 'new' && S.current && S.current.type){ e.preventDefault(); saveCurrent(); }
+});
+window.addEventListener('beforeunload', e => { if (S.dirty && S.token){ e.preventDefault(); e.returnValue = ''; } });
+
+/* ---------- Indítás ---------- */
+(function init(){
+  const urlKey = normKey(new URLSearchParams(location.search).get('p'));
+  const auth = store.get('cf_auth', null);
+  if (API && auth && auth.token && auth.lejar > Date.now() && (!urlKey || urlKey === auth.projekt)) enter(auth);
+  else { S.projekt = urlKey || (auth && auth.projekt) || ''; renderLogin(S.projekt); }
+})();
+</script>
+</body>
+</html>
